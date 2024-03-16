@@ -17,24 +17,24 @@ jobs:
 
       - name: Set up dynamic environment variables
         id: set-env-vars
+        env:
+          MASTER_USERNAME: ${{ secrets.USERNAME }}
+        # Add your branch-specific USERNAME secrets here as environment variables
+        # BRANCHNAME_USERNAME: ${{ secrets.BRANCHNAME_USERNAME }}
         run: |
           BRANCH_NAME=${{ github.ref_name }}
           BRANCH_NAME_UPPER=$(echo "$BRANCH_NAME" | tr '[:lower:]' '[:upper:]')
-          PREFIX=$([[ "$BRANCH_NAME_UPPER" == "MASTER" ]] && echo "" || echo "${BRANCH_NAME_UPPER}_")
+          PREFIX=$([[ "$BRANCH_NAME_UPPER" == "MASTER" ]] && echo "MASTER" || echo "${BRANCH_NAME_UPPER}")
+          USERNAME_VAR="${PREFIX}_USERNAME"
           
-          # Attempt to set DYNAMIC_USERNAME based on branch-specific or default USERNAME
-          if [ "$BRANCH_NAME_UPPER" == "MASTER" ]; then
-            USERNAME=${{ secrets.USERNAME }}
-          else
-            # Fallback to root if no specific branch or default USERNAME secret is provided
-            USERNAME=${{ secrets[format('{0}USERNAME', PREFIX)] }} || "root"
-          fi
+          # Use 'env' command to list all environment variables, grep to find our dynamic USERNAME
+          USERNAME=$(env | grep "^${USERNAME_VAR}=" | sed "s/^${USERNAME_VAR}=//")
           
-          # Ensure USERNAME is not empty, fallback to root
-          if [ -z "$USERNAME" ]; then
+          # Fallback to 'root' if no specific USERNAME is found
+          if [[ -z "$USERNAME" ]]; then
             USERNAME="root"
           fi
-          
+
           echo "::set-output name=DYNAMIC_USERNAME::$USERNAME"
           echo "::set-output name=DYNAMIC_PASSWORD::${{ secrets[format('{0}PASSWORD', PREFIX)] }}"
           echo "::set-output name=DYNAMIC_HOST::${{ secrets[format('{0}HOST', PREFIX)] }}"
