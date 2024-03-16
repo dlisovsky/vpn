@@ -17,38 +17,19 @@ jobs:
 
       - name: Set up dynamic environment variables
         id: set-env-vars
-        env:
-          MASTER_USERNAME: ${{ secrets.USERNAME }}
-          # Assuming BRANCHNAME_USERNAME is replaced by actual branch-specific secrets in your real setup
-          # BRANCHNAME_USERNAME: ${{ secrets.BRANCHNAME_USERNAME }}
         run: |
           BRANCH_NAME=${{ github.ref_name }}
           BRANCH_NAME_UPPER=$(echo "$BRANCH_NAME" | tr '[:lower:]' '[:upper:]')
-          PREFIX=$([[ "$BRANCH_NAME_UPPER" == "MASTER" ]] && echo "" || echo "${BRANCH_NAME_UPPER}")
-          
-          USERNAME_VAR="${PREFIX}_USERNAME"
-          PASSWORD_VAR="${PREFIX}_PASSWORD"
-          HOST_VAR="${PREFIX}_HOST"
-          
-          # Use shell parameter expansion to provide default values if secrets are not set
-          USERNAME=${!USERNAME_VAR:-root}
-          PASSWORD=${!PASSWORD_VAR:-${{ secrets.PASSWORD }}}
-          HOST=${!HOST_VAR:-${{ secrets.HOST }}}
-          
-          # Write outputs to GITHUB_OUTPUT environment file
-          echo "DYNAMIC_USERNAME=$USERNAME" >> $GITHUB_OUTPUT
-          echo "DYNAMIC_PASSWORD=$PASSWORD" >> $GITHUB_OUTPUT
-          echo "DYNAMIC_HOST=$HOST" >> $GITHUB_OUTPUT
-          
-          echo "DYNAMIC_USERNAME=$USERNAME"
-          echo "DYNAMIC_PASSWORD=$PASSWORD"
-          echo "DYNAMIC_HOST=$HOST"
+          PREFIX=$(echo "$BRANCH_NAME_UPPER" | tr '[:lower:]' '[:upper:]')
+          PREFIX=$([[ "$BRANCH_NAME_UPPER" == "MASTER" ]] && echo "" || echo "${BRANCH_NAME_UPPER}_")
+          echo "PREFIX=$PREFIX" >> $GITHUB_ENV
+          echo "BRANCH_NAME_UPPER=$BRANCH_NAME_UPPER" >> $GITHUB_ENV
 
       - name: Install Docker on the server
         env:
-          SSHPASS: ${{ steps.set-env-vars.outputs.DYNAMIC_PASSWORD }}
+          SSHPASS: ${{ secrets['${{ env.PREFIX }}PASSWORD'] }}
         run: |
-          sshpass -e ssh -o StrictHostKeyChecking=no ${{ steps.set-env-vars.outputs.DYNAMIC_USERNAME }}@${{ steps.set-env-vars.outputs.DYNAMIC_HOST }} << 'EOF'
+          sshpass -e ssh -o StrictHostKeyChecking=no ${{ secrets['${{ env.PREFIX }}USERNAME'] || 'root' }}@${{ secrets['${{ env.PREFIX }}HOST'] }} << 'EOF'
             if ! command -v docker &> /dev/null; then
               sudo apt-get update
               sudo apt-get install -y ca-certificates curl gnupg lsb-release
@@ -61,9 +42,9 @@ jobs:
 
       - name: Install Docker Compose on the server
         env:
-          SSHPASS: ${{ steps.set-env-vars.outputs.DYNAMIC_PASSWORD }}
+          SSHPASS: ${{ secrets['${{ env.PREFIX }}PASSWORD'] }}
         run: |
-          sshpass -e ssh -o StrictHostKeyChecking=no ${{ steps.set-env-vars.outputs.DYNAMIC_USERNAME }}@${{ steps.set-env-vars.outputs.DYNAMIC_HOST }} << 'EOF'
+          sshpass -e ssh -o StrictHostKeyChecking=no ${{ secrets['${{ env.PREFIX }}USERNAME'] || 'root' }}@${{ secrets['${{ env.PREFIX }}HOST'] }} << 'EOF'
             if ! command -v docker-compose &> /dev/null; then
               sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
               sudo chmod +x /usr/local/bin/docker-compose
@@ -72,11 +53,11 @@ jobs:
 
       - name: Deploy Docker Compose application
         env:
-          SSHPASS: ${{ steps.set-env-vars.outputs.DYNAMIC_PASSWORD }}
+          SSHPASS: ${{ secrets['${{ env.PREFIX }}PASSWORD'] }}
         run: |
-          sshpass -e scp -o StrictHostKeyChecking=no docker-compose.yml ${{ steps.set-env-vars.outputs.DYNAMIC_USERNAME }}@${{ steps.set-env-vars.outputs.DYNAMIC_HOST }}:.
-          sshpass -e ssh -o StrictHostKeyChecking=no ${{ steps.set-env-vars.outputs.DYNAMIC_USERNAME }}@${{ steps.set-env-vars.outputs.DYNAMIC_HOST }} << EOF
-            cd ~  # Ensure you're in the right directory.
+          sshpass -e scp -o StrictHostKeyChecking=no docker-compose.yml ${{ secrets['${{ env.PREFIX }}USERNAME'] || 'root' }}@${{ secrets['${{ env.PREFIX }}HOST'] }}:.
+          sshpass -e ssh -o StrictHostKeyChecking=no ${{ secrets['${{ env.PREFIX }}USERNAME'] || 'root' }}@${{ secrets['${{ env.PREFIX }}HOST'] }} << EOF
+            cd ~
             docker-compose down
             docker-compose up -d
           EOF
