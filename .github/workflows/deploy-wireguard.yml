@@ -18,26 +18,38 @@ jobs:
       - name: Set up dynamic environment variables
         id: set-env-vars
         env:
-          MASTER_USERNAME: ${{ secrets.USERNAME }}
-        # Add your branch-specific USERNAME secrets here as environment variables
-        # BRANCHNAME_USERNAME: ${{ secrets.BRANCHNAME_USERNAME }}
+          MASTER_USERNAME: ${{ secrets.USERNAME }} # Default username
+          MASTER_PASSWORD: ${{ secrets.PASSWORD }} # Default password
+          MASTER_HOST: ${{ secrets.HOST }}         # Default host
+          # Add your specific branch-related secrets here if necessary
         run: |
           BRANCH_NAME=${{ github.ref_name }}
           BRANCH_NAME_UPPER=$(echo "$BRANCH_NAME" | tr '[:lower:]' '[:upper:]')
-          PREFIX=$([[ "$BRANCH_NAME_UPPER" == "MASTER" ]] && echo "MASTER" || echo "${BRANCH_NAME_UPPER}")
-          USERNAME_VAR="${PREFIX}_USERNAME"
           
-          # Use 'env' command to list all environment variables, grep to find our dynamic USERNAME
-          USERNAME=$(env | grep "^${USERNAME_VAR}=" | sed "s/^${USERNAME_VAR}=//")
-          
-          # Fallback to 'root' if no specific USERNAME is found
+          # Set USERNAME
+          USERNAME_VAR="${BRANCH_NAME_UPPER}_USERNAME"
+          USERNAME=$(printenv | grep "^${USERNAME_VAR}=" | sed "s/^${USERNAME_VAR}=//")
           if [[ -z "$USERNAME" ]]; then
-            USERNAME="root"
+            USERNAME="root" # Fallback to root if no specific USERNAME is found
           fi
-
+          
+          # Set PASSWORD
+          PASSWORD_VAR="${BRANCH_NAME_UPPER}_PASSWORD"
+          PASSWORD=$(printenv | grep "^${PASSWORD_VAR}=" | sed "s/^${PASSWORD_VAR}=//")
+          if [[ -z "$PASSWORD" ]]; then
+            PASSWORD=${{ secrets.PASSWORD }} # Fallback to default PASSWORD
+          fi
+          
+          # Set HOST
+          HOST_VAR="${BRANCH_NAME_UPPER}_HOST"
+          HOST=$(printenv | grep "^${HOST_VAR}=" | sed "s/^${HOST_VAR}=//")
+          if [[ -z "$HOST" ]]; then
+            HOST=${{ secrets.HOST }} # Fallback to default HOST
+          fi
+          
           echo "::set-output name=DYNAMIC_USERNAME::$USERNAME"
-          echo "::set-output name=DYNAMIC_PASSWORD::${{ secrets[format('{0}PASSWORD', PREFIX)] }}"
-          echo "::set-output name=DYNAMIC_HOST::${{ secrets[format('{0}HOST', PREFIX)] }}"
+          echo "::set-output name=DYNAMIC_PASSWORD::$PASSWORD"
+          echo "::set-output name=DYNAMIC_HOST::$HOST"
 
       - name: Install Docker on the server
         env:
