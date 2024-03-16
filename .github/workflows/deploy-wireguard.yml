@@ -3,7 +3,7 @@ name: Deploy and Setup Docker on DigitalOcean
 on:
   push:
     branches:
-      - *
+      - '*'
 
 jobs:
   setup-and-deploy:
