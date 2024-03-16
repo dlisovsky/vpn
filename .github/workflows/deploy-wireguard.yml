@@ -39,6 +39,10 @@ jobs:
           echo "DYNAMIC_USERNAME=$USERNAME" >> $GITHUB_OUTPUT
           echo "DYNAMIC_PASSWORD=$PASSWORD" >> $GITHUB_OUTPUT
           echo "DYNAMIC_HOST=$HOST" >> $GITHUB_OUTPUT
+          
+          echo "DYNAMIC_USERNAME=$USERNAME"
+          echo "DYNAMIC_PASSWORD=$PASSWORD"
+          echo "DYNAMIC_HOST=$HOST"
 
       - name: Install Docker on the server
         env:
