@@ -24,7 +24,7 @@ jobs:
         run: |
           BRANCH_NAME=${{ github.ref_name }}
           BRANCH_NAME_UPPER=$(echo "$BRANCH_NAME" | tr '[:lower:]' '[:upper:]')
-          PREFIX=$([[ "$BRANCH_NAME_UPPER" == "MASTER" ]] && echo "" || echo "${BRANCH_NAME_UPPER}_")
+          PREFIX=$([[ "$BRANCH_NAME_UPPER" == "MASTER" ]] && echo "" || echo "${BRANCH_NAME_UPPER}")
           
           USERNAME_VAR="${PREFIX}_USERNAME"
           PASSWORD_VAR="${PREFIX}_PASSWORD"
