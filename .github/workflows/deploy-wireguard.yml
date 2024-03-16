@@ -41,9 +41,8 @@ jobs:
         env:
           SSHPASS: ${{ secrets.PASSWORD }}
         run: |
-          sshpass -e scp -o StrictHostKeyChecking=no docker-compose.yml ${{ secrets.USERNAME }}@${{ secrets.HOST }}:/vpn
+          sshpass -e scp -o StrictHostKeyChecking=no docker-compose.yml ${{ secrets.USERNAME }}@${{ secrets.HOST }}:.
           sshpass -e ssh -o StrictHostKeyChecking=no ${{ secrets.USERNAME }}@${{ secrets.HOST }} << EOF
-            cd /vpn
             docker-compose down
             docker-compose up -d
           EOF
