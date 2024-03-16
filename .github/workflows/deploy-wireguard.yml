@@ -18,38 +18,27 @@ jobs:
       - name: Set up dynamic environment variables
         id: set-env-vars
         env:
-          MASTER_USERNAME: ${{ secrets.USERNAME }} # Default username
-          MASTER_PASSWORD: ${{ secrets.PASSWORD }} # Default password
-          MASTER_HOST: ${{ secrets.HOST }}         # Default host
-          # Add your specific branch-related secrets here if necessary
+          MASTER_USERNAME: ${{ secrets.USERNAME }}
+          # Assuming BRANCHNAME_USERNAME is replaced by actual branch-specific secrets in your real setup
+          # BRANCHNAME_USERNAME: ${{ secrets.BRANCHNAME_USERNAME }}
         run: |
           BRANCH_NAME=${{ github.ref_name }}
           BRANCH_NAME_UPPER=$(echo "$BRANCH_NAME" | tr '[:lower:]' '[:upper:]')
+          PREFIX=$([[ "$BRANCH_NAME_UPPER" == "MASTER" ]] && echo "" || echo "${BRANCH_NAME_UPPER}_")
           
-          # Set USERNAME
-          USERNAME_VAR="${BRANCH_NAME_UPPER}_USERNAME"
-          USERNAME=$(printenv | grep "^${USERNAME_VAR}=" | sed "s/^${USERNAME_VAR}=//")
-          if [[ -z "$USERNAME" ]]; then
-            USERNAME="root" # Fallback to root if no specific USERNAME is found
-          fi
+          USERNAME_VAR="${PREFIX}_USERNAME"
+          PASSWORD_VAR="${PREFIX}_PASSWORD"
+          HOST_VAR="${PREFIX}_HOST"
           
-          # Set PASSWORD
-          PASSWORD_VAR="${BRANCH_NAME_UPPER}_PASSWORD"
-          PASSWORD=$(printenv | grep "^${PASSWORD_VAR}=" | sed "s/^${PASSWORD_VAR}=//")
-          if [[ -z "$PASSWORD" ]]; then
-            PASSWORD=${{ secrets.PASSWORD }} # Fallback to default PASSWORD
-          fi
+          # Use shell parameter expansion to provide default values if secrets are not set
+          USERNAME=${!USERNAME_VAR:-root}
+          PASSWORD=${!PASSWORD_VAR:-${{ secrets.PASSWORD }}}
+          HOST=${!HOST_VAR:-${{ secrets.HOST }}}
           
-          # Set HOST
-          HOST_VAR="${BRANCH_NAME_UPPER}_HOST"
-          HOST=$(printenv | grep "^${HOST_VAR}=" | sed "s/^${HOST_VAR}=//")
-          if [[ -z "$HOST" ]]; then
-            HOST=${{ secrets.HOST }} # Fallback to default HOST
-          fi
-          
-          echo "::set-output name=DYNAMIC_USERNAME::$USERNAME"
-          echo "::set-output name=DYNAMIC_PASSWORD::$PASSWORD"
-          echo "::set-output name=DYNAMIC_HOST::$HOST"
+          # Write outputs to GITHUB_OUTPUT environment file
+          echo "DYNAMIC_USERNAME=$USERNAME" >> $GITHUB_OUTPUT
+          echo "DYNAMIC_PASSWORD=$PASSWORD" >> $GITHUB_OUTPUT
+          echo "DYNAMIC_HOST=$HOST" >> $GITHUB_OUTPUT
 
       - name: Install Docker on the server
         env:
