@@ -19,28 +19,23 @@ jobs:
         id: set-env-vars
         run: |
           BRANCH_NAME=${{ github.ref_name }}
-          BRANCH_NAME_UPPER=$(echo "$BRANCH_NAME" | tr '[:lower:]' '[:upper:]') # Convert branch name to uppercase
-          PREFIX=$([[ "$BRANCH_NAME_UPPER" == "MASTER" ]] && echo "" || echo "${BRANCH_NAME_UPPER}-")
-
-          echo "BRANCH_NAME_UPPER: $BRANCH_NAME_UPPER" # For debugging
-          echo "PREFIX: $PREFIX" # For debugging
-
-          USERNAME_VAR_NAME="${PREFIX}USERNAME"
-
-          # Since GitHub Actions does not allow dynamic secret names in this way,
-          # the next line is for illustrative purposes. You'll need to adjust your strategy.
-          USERNAME=${{ secrets[USERNAME_VAR_NAME] }}
-
-          # Fallback strategy for USERNAME (see explanation below)
+          BRANCH_NAME_UPPER=$(echo "$BRANCH_NAME" | tr '[:lower:]' '[:upper:]')
+          PREFIX=$([[ "$BRANCH_NAME_UPPER" == "MASTER" ]] && echo "" || echo "${BRANCH_NAME_UPPER}_")
+          
+          # Attempt to set DYNAMIC_USERNAME based on branch-specific or default USERNAME
           if [ "$BRANCH_NAME_UPPER" == "MASTER" ]; then
             USERNAME=${{ secrets.USERNAME }}
           else
-            # Placeholder for setting USERNAME based on dynamically constructed secret names.
-            # GitHub Actions does not directly support this; consider using a different approach.
-            echo "Using a specific USERNAME for the branch $BRANCH_NAME_UPPER"
+            # Fallback to root if no specific branch or default USERNAME secret is provided
+            USERNAME=${{ secrets[format('{0}USERNAME', PREFIX)] }} || "root"
           fi
-
-          echo "::set-output name=DYNAMIC_USERNAME::$USERNAME" 
+          
+          # Ensure USERNAME is not empty, fallback to root
+          if [ -z "$USERNAME" ]; then
+            USERNAME="root"
+          fi
+          
+          echo "::set-output name=DYNAMIC_USERNAME::$USERNAME"
           echo "::set-output name=DYNAMIC_PASSWORD::${{ secrets[format('{0}PASSWORD', PREFIX)] }}"
           echo "::set-output name=DYNAMIC_HOST::${{ secrets[format('{0}HOST', PREFIX)] }}"
 
